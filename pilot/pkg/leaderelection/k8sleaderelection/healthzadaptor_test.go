@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	clock "k8s.io/utils/clock/testing"
+	"k8s.io/apimachinery/pkg/util/clock"
 
 	rl "istio.io/istio/pilot/pkg/leaderelection/k8sleaderelection/k8sresourcelock"
 )

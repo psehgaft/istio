@@ -268,55 +268,43 @@ func TestImageFetcher_Fetch(t *testing.T) {
 }
 
 func TestExtractDockerImage(t *testing.T) {
-	t.Run("no layers", func(t *testing.T) {
-		_, err := extractDockerImage(empty.Image)
-		if err == nil || err.Error() != "number of layers must be greater than zero" {
-			t.Fatal("extractDockerImage should fail due to empty image")
-		}
-	})
-
-	t.Run("valid layers", func(t *testing.T) {
-		previousLayer, err := newMockLayer(types.DockerLayer, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
+	t.Run("valid", func(t *testing.T) {
 		exp := "this is wasm binary"
-		lastLayer, err := newMockLayer(types.DockerLayer, map[string][]byte{
+		l, err := newMockLayer(types.DockerLayer, map[string][]byte{
 			"plugin.wasm": []byte(exp),
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		tCases := map[string]int{
-			"one layer":           0,
-			"more than one layer": 1,
+		img, err := mutate.Append(empty.Image, mutate.Addendum{Layer: l})
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual, err := extractDockerImage(img)
+		if err != nil {
+			t.Fatalf("extractDockerImage failed: %v", err)
 		}
 
-		for name, numberOfPreviousLayers := range tCases {
-			t.Run(name, func(t *testing.T) {
-				img := empty.Image
-				for i := 0; i < numberOfPreviousLayers; i++ {
-					img, err = mutate.Append(img, mutate.Addendum{Layer: previousLayer})
-					if err != nil {
-						t.Fatal(err)
-					}
-				}
+		if string(actual) != exp {
+			t.Fatalf("got %s, but want %s", string(actual), exp)
+		}
+	})
 
-				img, err = mutate.Append(img, mutate.Addendum{Layer: lastLayer})
-				if err != nil {
-					t.Fatal(err)
-				}
-				actual, err := extractDockerImage(img)
-				if err != nil {
-					t.Fatalf("extractDockerImage failed: %v", err)
-				}
-
-				if string(actual) != exp {
-					t.Fatalf("got %s, but want %s", string(actual), exp)
-				}
-			})
+	t.Run("multiple layers", func(t *testing.T) {
+		l, err := newMockLayer(types.DockerLayer, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		img := empty.Image
+		for i := 0; i < 2; i++ {
+			img, err = mutate.Append(img, mutate.Addendum{Layer: l})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		_, err = extractDockerImage(img)
+		if err == nil || !strings.Contains(err.Error(), "number of layers must be") {
+			t.Fatal("extractDockerImage should fail due to invalid number of layers")
 		}
 	})
 
@@ -337,55 +325,43 @@ func TestExtractDockerImage(t *testing.T) {
 }
 
 func TestExtractOCIStandardImage(t *testing.T) {
-	t.Run("no layers", func(t *testing.T) {
-		_, err := extractOCIStandardImage(empty.Image)
-		if err == nil || err.Error() != "number of layers must be greater than zero" {
-			t.Fatal("extractDockerImage should fail due to empty image")
-		}
-	})
-
-	t.Run("valid layers", func(t *testing.T) {
-		previousLayer, err := newMockLayer(types.DockerLayer, nil)
-		if err != nil {
-			t.Fatal(err)
-		}
-
+	t.Run("valid", func(t *testing.T) {
 		exp := "this is wasm binary"
-		lastLayer, err := newMockLayer(types.OCILayer, map[string][]byte{
+		l, err := newMockLayer(types.OCILayer, map[string][]byte{
 			"plugin.wasm": []byte(exp),
 		})
 		if err != nil {
 			t.Fatal(err)
 		}
-
-		tCases := map[string]int{
-			"one layer":           0,
-			"more than one layer": 1,
+		img, err := mutate.Append(empty.Image, mutate.Addendum{Layer: l})
+		if err != nil {
+			t.Fatal(err)
+		}
+		actual, err := extractOCIStandardImage(img)
+		if err != nil {
+			t.Fatalf("extractOCIStandardImage failed: %v", err)
 		}
 
-		for name, numberOfPreviousLayers := range tCases {
-			t.Run(name, func(t *testing.T) {
-				img := empty.Image
-				for i := 0; i < numberOfPreviousLayers; i++ {
-					img, err = mutate.Append(img, mutate.Addendum{Layer: previousLayer})
-					if err != nil {
-						t.Fatal(err)
-					}
-				}
+		if string(actual) != exp {
+			t.Fatalf("got %s, but want %s", string(actual), exp)
+		}
+	})
 
-				img, err = mutate.Append(img, mutate.Addendum{Layer: lastLayer})
-				if err != nil {
-					t.Fatal(err)
-				}
-				actual, err := extractOCIStandardImage(img)
-				if err != nil {
-					t.Fatalf("extractOCIStandardImage failed: %v", err)
-				}
-
-				if string(actual) != exp {
-					t.Fatalf("got %s, but want %s", string(actual), exp)
-				}
-			})
+	t.Run("multiple layers", func(t *testing.T) {
+		l, err := newMockLayer(types.OCILayer, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		img := empty.Image
+		for i := 0; i < 2; i++ {
+			img, err = mutate.Append(img, mutate.Addendum{Layer: l})
+			if err != nil {
+				t.Fatal(err)
+			}
+		}
+		_, err = extractOCIStandardImage(img)
+		if err == nil || !strings.Contains(err.Error(), "number of layers must be") {
+			t.Fatal("extractOCIStandardImage should fail due to invalid number of layers")
 		}
 	})
 

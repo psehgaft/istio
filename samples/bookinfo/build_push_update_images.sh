@@ -22,8 +22,8 @@ display_usage() {
     echo "	version: Version of the sample app images (Required)"
     echo "	-h|--help: Prints usage information"
     echo "	--prefix: Use the value as the prefix for image names. By default, 'istio' is used"
-    echo -e "	--scan-images: Enable security vulnerability scans for docker images \n\t\t\trelated to bookinfo sample apps. By default, this feature \n\t\t\tis disabled."
-    echo -e "   --multiarch-images : Enables building and pushing multiarch docker images \n\t\t\trelated to bookinfo sample apps. By default, this feature \n\t\t\tis disabled."
+    echo -e "	--scan-images: Enable security vulnerability scans for podman images \n\t\t\trelated to bookinfo sample apps. By default, this feature \n\t\t\tis disabled."
+    echo -e "   --multiarch-images : Enables building and pushing multiarch podman images \n\t\t\trelated to bookinfo sample apps. By default, this feature \n\t\t\tis disabled."
 }
 
 # Print usage information for help
@@ -58,7 +58,7 @@ do
  		   ENABLE_MULTIARCH_IMAGES=true ;;		
 		-h|--help )
 		   echo
-		   echo "Build the docker images for bookinfo sample apps, push them to docker hub and update the yaml files."
+		   echo "Build the podman images for bookinfo sample apps, push them to quay hub and update the yaml files."
 		   display_usage
 		   exit 0 ;;
 		* )
@@ -68,7 +68,7 @@ do
 	esac
 done
 
-# Build docker images
+# Build  podman images
 ENABLE_MULTIARCH_IMAGES="${ENABLE_MULTIARCH_IMAGES}" src/build-services.sh "${VERSION}" "${PREFIX}"
 
 # Currently the `--load` argument does not work for multi arch images
@@ -77,14 +77,14 @@ if [[ "${ENABLE_MULTIARCH_IMAGES}" == "false" ]]; then
   # Get all the new image names and tags
   for v in ${VERSION} "latest"
   do
-    IMAGES+=$(docker images -f reference="${PREFIX}/examples-bookinfo*:$v" --format "{{.Repository}}:$v")
+    IMAGES+=$(podman images -f reference="${PREFIX}/examples-bookinfo*:$v" --format "{{.Repository}}:$v")
     IMAGES+=" "
   done
 
   # Check that $IMAGES contains the images we've just built
   if [[ "${IMAGES}" =~ ^\ +$ ]] ; then
     echo "Found no images matching prefix \"${PREFIX}/examples-bookinfo\"."
-    echo "Try running the script without specifying the image registry in --prefix (e.g. --prefix=/foo instead of --prefix=docker.io/foo)."
+    echo "Try running the script without specifying the image registry in --prefix (e.g. --prefix=/foo instead of --prefix=quay.io/foo)."
     exit 1
   fi
 fi
@@ -109,7 +109,7 @@ do
   # Multiarch images have already been pushed using buildx build	
   if [[ "${ENABLE_MULTIARCH_IMAGES}" == "false" ]]; then	
   	echo "Pushing: ${IMAGE}"
-  	docker push "${IMAGE}";
+  	podman push "${IMAGE}";
   fi
 
   # $IMAGE has the following format: istio/examples-bookinfo*:"$v".

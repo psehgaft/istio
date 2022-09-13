@@ -43,14 +43,14 @@ ENABLE_MULTIARCH_IMAGES=${ENABLE_MULTIARCH_IMAGES:-"false"}
 
 if [ "${ENABLE_MULTIARCH_IMAGES}" == "true" ]; then
   PLATFORMS="linux/arm64,linux/amd64"	
-  DOCKER_BUILD_ARGS="docker buildx build --platform ${PLATFORMS} --push"
+  DOCKER_BUILD_ARGS="podman buildx build --platform ${PLATFORMS} --push"
   # Install QEMU emulators
-  docker run --rm --privileged tonistiigi/binfmt --install all
-  docker buildx rm multi-builder || :
-  docker buildx create --use --name multi-builder --platform ${PLATFORMS}
-  docker buildx use multi-builder
+  podman run --rm --privileged tonistiigi/binfmt --install all
+  podman buildx rm multi-builder || :
+  podman buildx create --use --name multi-builder --platform ${PLATFORMS}
+  podman buildx use multi-builder
 else
-  DOCKER_BUILD_ARGS="docker build"	
+  DOCKER_BUILD_ARGS="podman build"	
 fi
 
 pushd "$SCRIPTDIR/productpage"
@@ -70,8 +70,9 @@ popd
 
 pushd "$SCRIPTDIR/reviews"
   #java build the app.
-  docker run --rm -u root -v "$(pwd)":/home/gradle/project -w /home/gradle/project gradle:4.8.1 gradle clean build
-  
+  # podman run --rm -u root -v "$(pwd)":/home/gradle/project -w /home/gradle/project gradle:4.8.1 gradle clean build
+  podman run --rm -u root -v "$(pwd)":/home/gradle/project -w /home/gradle/project gradle:4.8.1 gradle build
+
   pushd reviews-wlpcfg
     #plain build -- no ratings
     ${DOCKER_BUILD_ARGS} --pull -t "${PREFIX}/examples-bookinfo-reviews-v1:${VERSION}" -t "${PREFIX}/examples-bookinfo-reviews-v1:latest" --build-arg service_version=v1 . 

@@ -1020,14 +1020,11 @@ func (c *client) applyYAMLFile(namespace string, dryRun bool, file string) error
 			return err
 		}
 	}
-	dcmd := kubectlDelete.NewCmdDelete(c.clientFactory, streams)
+
 	opts.DeleteOptions = &kubectlDelete.DeleteOptions{
 		DynamicClient:   c.dynamic,
 		IOStreams:       streams,
 		FilenameOptions: flags.DeleteFlags.FileNameFlags.ToOptions(),
-	}
-	if err := opts.DeleteOptions.Complete(c.clientFactory, nil, dcmd); err != nil {
-		return fmt.Errorf("delete.Complete: %v", err)
 	}
 
 	opts.OpenAPISchema, _ = c.clientFactory.OpenAPISchema()
@@ -1111,25 +1108,19 @@ func (c *client) deleteFile(namespace string, dryRun bool, file string) error {
 	fileOpts := resource.FilenameOptions{
 		Filenames: []string{file},
 	}
-	dcmd := kubectlDelete.NewCmdDelete(c.clientFactory, streams)
-	opts := &kubectlDelete.DeleteOptions{
-		DynamicClient:   c.dynamic,
-		IOStreams:       streams,
-		FilenameOptions: fileOpts,
+
+	opts := kubectlDelete.DeleteOptions{
+		FilenameOptions:   fileOpts,
+		CascadingStrategy: metav1.DeletePropagationBackground,
+		GracePeriod:       -1,
+		IgnoreNotFound:    true,
+		WaitForDeletion:   true,
+		WarnClusterScope:  enforceNamespace,
+		DynamicClient:     c.dynamic,
+		DryRunVerifier:    resource.NewQueryParamVerifier(c.dynamic, c.discoveryClient, resource.QueryParamDryRun),
+
+		IOStreams: streams,
 	}
-
-	if err := opts.Complete(c.clientFactory, nil, dcmd); err != nil {
-		return fmt.Errorf("delete.Complete: %v", err)
-	}
-
-	opts.CascadingStrategy = metav1.DeletePropagationBackground
-	opts.GracePeriod = -1
-	opts.IgnoreNotFound = true
-	opts.WaitForDeletion = true
-	opts.WarnClusterScope = enforceNamespace
-	opts.DynamicClient = c.dynamic
-	opts.DryRunVerifier = resource.NewQueryParamVerifier(c.dynamic, c.discoveryClient, resource.QueryParamDryRun)
-
 	if dryRun {
 		opts.DryRunStrategy = util.DryRunServer
 	}
